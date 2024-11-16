@@ -189,3 +189,26 @@ ifdef(`lockdown_defined', `allow $1 self:lockdown confidentiality;')
 define(`allow_userns_create',
 ifdef(`user_namespace_defined', `allow $1 self:user_namespace create;')
 )
+
+
+# virtme
+gen_require(`
+       type kernel_t, unconfined_t, unlabeled_t, virtiofs_t;
+')
+
+# tty since virtme starts with kernel_t after load_policy
+kernel_use_fds(testsuite_domain)
+
+fs_search_tmpfs(testsuite_domain)
+allow testsuite_domain virtiofs_t:dir search_dir_perms;
+allow testsuite_domain virtiofs_t:file { entrypoint execute execute_no_trans map read_file_perms };
+allow testsuite_domain virtiofs_t:lnk_file read_lnk_file_perms;
+
+fs_getattr_tmpfs(test_filesystem_t)
+# fs_manage_tmpfs_dirs
+allow test_overlay_mounter_t tmpfs_t:dir { read write };
+
+allow kernel_t self:capability2 mac_admin;
+allow { kernel_t unconfined_t } virtiofs_t:system module_load;
+
+fs_associate_tmpfs(unlabeled_t)
